@@ -1,55 +1,111 @@
 import type { ValidationAcceptor, ValidationChecks } from 'langium';
-import type { HelloWorldAstType, Person,Model } from './generated/ast.js';
+import type { HelloWorldAstType, Person } from './generated/ast.js';
 import type { HelloWorldServices } from './hello-world-module.js';
+import { isBinaryExpression, isNumberLiteral, isFunctionCall ,isDefinition} from './generated/ast.js';
+import {
+    BinaryExpression,
+    Expression,
+    Model,
+    FunctionCall,
+} from './generated/ast.js';
 
 /**
- * Register custom validation checks.
+ * Register all custom validation checks
  */
 export function registerValidationChecks(services: HelloWorldServices) {
     const registry = services.validation.ValidationRegistry;
     const validator = services.validation.HelloWorldValidator;
+
     const checks: ValidationChecks<HelloWorldAstType> = {
         Person: validator.checkPersonStartsWithCapital,
-        Model: validator.checkPersonAreGreetedAtMostOnce
+        Model: validator.checkPersonAreGreetedAtMostOnce,
+        BinaryExpression: validator.checkDivByZero,
+        FunctionCall: validator.checktwoArg
     };
+
     registry.register(checks, validator);
 }
 
 /**
- * Implementation of custom validations.
+ * Custom validations
  */
 export class HelloWorldValidator {
 
     checkPersonStartsWithCapital(person: Person, accept: ValidationAcceptor): void {
-        if (person.name) {
-            const firstChar = person.name.substring(0, 1);
-            if (firstChar.toUpperCase() !== firstChar) {
-                accept('warning', 'Person name should start with a capital.', { node: person, property: 'name' });
-            }
+        const firstChar = person.name[0];
+        if (firstChar && firstChar !== firstChar.toUpperCase()) {
+            accept('warning', 'Person name should start with a capital.', {
+                node: person,
+                property: 'name'
+            });
         }
     }
 
-     checkPersonAreGreetedAtMostOnce(model:Model, accept: ValidationAcceptor): void {
-        //create a multi-counter variable using a map
+    checkPersonAreGreetedAtMostOnce(model: Model, accept: ValidationAcceptor): void {
         const counts = new Map<Person, number>();
-        //initialize the counter for each person to zero
         model.persons.forEach(p => counts.set(p, 0));
-        //iterate over all greetings and count the number of greetings for each person
+
         model.greetings.forEach(g => {
             const person = g.person.ref;
-            //Attention! if the linker was unsucessful, person is undefined
-            if(person) {
-                //set the new value of the counter
-                const newValue = counts.get(person)!+1;
-                counts.set(person, newValue);
-                //if the counter is greater than 1, create a helpful error
-                if(newValue > 1) {
-                    accept('error', `You can greet each person at most once! This is the ${newValue}${newValue==2?'nd':'th'} greeting to ${person.name}.`, {
-                        node: g
-                    });
-                }
+            if (!person) return;
+
+            const newValue = (counts.get(person) ?? 0) + 1;
+            counts.set(person, newValue);
+
+            if (newValue > 1) {
+                accept('error', `You can greet each person at most once!`, {
+                    node: g
+                });
             }
         });
     }
+     
+    checktwoArg(call:FunctionCall, accept:ValidationAcceptor): void{
+        const def = call.func.ref;
+        if (!def || !isDefinition(def)) {
+        return;
+    }
+        const expected = def.args.length;
+        const actual = call.args.length;
 
+    if (expected !== actual) {
+        accept(
+            'error',
+            `Function '${def.name}' expects ${expected} argument(s) but got ${actual}.`,
+            { node: call }
+        );
+    }
+}
+    checkDivByZero(binExpr: BinaryExpression, accept: ValidationAcceptor): void {
+    const rightValue = this.evaluateLiteral(binExpr.right);
+    if ((binExpr.operator === '/' || binExpr.operator === '%') && rightValue === 0) {
+        accept('error', 'Division by zero is detected.', { node: binExpr, property: 'right' });
+    }
+     
+}
+   
+
+/** Recursive evaluation of expressions for compile-time literals */
+            private evaluateLiteral(expr: Expression): number | undefined {
+                if (isNumberLiteral(expr)) {
+                    return expr.value;
+                } else if (isBinaryExpression(expr)) {
+                    const left = this.evaluateLiteral(expr.left);
+                    const right = this.evaluateLiteral(expr.right);
+                    if (left === undefined || right === undefined) return undefined;
+
+                    switch (expr.operator) {
+                        case '+': return left + right;
+                        case '-': return left - right;
+                        case '*': return left * right;
+                        case '/': return right !== 0 ? left / right : undefined;
+                        case '%': return right !== 0 ? left % right : undefined;
+                        case '^': return Math.pow(left, right);
+                    }
+                } else if (isFunctionCall(expr)) {
+                    // Optionally: evaluate if all args are literals
+                    return undefined;
+                }
+                return undefined;
+            }
 }

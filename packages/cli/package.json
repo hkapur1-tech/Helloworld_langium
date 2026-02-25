@@ -17,12 +17,19 @@
     },
     "scripts": {
         "clean": "shx rm -fr *.tsbuildinfo out",
-        "build": "echo 'No build step'",
+         "build:prepare": "shx mkdir -p ./syntaxes/ && shx cp -f ../language/syntaxes/hello-world.tmLanguage.json ./syntaxes/hello-world.tmLanguage.json",
+        "build": "npm run build:prepare && tsc -b tsconfig.json",
         "build:clean": "npm run clean && npm run build"
     },
     "dependencies": {
-        "hello-world-language": "0.0.1",
         "chalk": "~5.3.0",
-        "commander": "~11.1.0"
+        "commander": "~11.1.0",
+        "hello-world-language": "0.0.1"
+    },
+    "devDependencies": {
+        "langium": "^4.2.1",
+        "langium-cli": "^4.2.0",
+        "shx": "^0.4.0",
+        "typescript": "^5.8.3"
     }
 }

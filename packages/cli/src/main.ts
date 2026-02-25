@@ -5,9 +5,11 @@ import { Command } from 'commander';
 import { extractAstNode } from './util.js';
 import { generateJavaScript } from './generator.js';
 import { NodeFileSystem } from 'langium/node';
+
 import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { evalAction } from './interpreter.js';
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 const packagePath = path.resolve(__dirname, '..', 'package.json');
@@ -18,7 +20,7 @@ export const generateAction = async (fileName: string, opts: GenerateOptions): P
     const model = await extractAstNode<Model>(fileName, services);
     const generatedFilePath = generateJavaScript(model, fileName, opts.destination);
     console.log(chalk.green(`JavaScript code generated successfully: ${generatedFilePath}`));
-};
+}
 
 export type GenerateOptions = {
     destination?: string;
@@ -36,6 +38,12 @@ export default function(): void {
         .option('-d, --destination <dir>', 'destination directory of generating')
         .description('generates JavaScript code that prints "Hello, {name}!" for each greeting in a source file')
         .action(generateAction);
+
+    program
+        .command('eval')
+        .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+        .description('evaluates the statements/expression in the file')
+        .action(evalAction)
 
     program.parse(process.argv);
 }
