@@ -16,7 +16,7 @@ Statement:
     Definition | Evaluation;
 Definition:
     'def' name=ID 
-    '(' args+=DeclaredParameter (',' args+=DeclaredParameter)* ')'?
+    ('(' args+=DeclaredParameter (',' args+=DeclaredParameter)* ')')?
     ':' expr=Expression ';';
 
 DeclaredParameter: name=ID;

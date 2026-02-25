@@ -3,7 +3,7 @@
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
-import type { Definition, Evaluation, Expression, Model, Statement } from './generated/ast.js';
+import type { AbstractDefinition, Definition, Evaluation, Expression, Model, Statement } from './generated/ast.js';
 import { isBinaryExpression, isDefinition, isEvaluation, isFunctionCall, isNumberLiteral } from './generated/ast.js';
 import { applyOp } from './arithmetics-util.js';
 
@@ -65,28 +65,26 @@ export function evalExpression(expr: Expression, ctx?: InterpreterContext): numb
         return +expr.value;
     }
     if (isFunctionCall(expr)) {
-    const valueOrDef = ctx.context.get((expr.func.ref as Definition).name) as number | Definition;
-    if (!isDefinition(valueOrDef)) {
-        return valueOrDef as number;
-    }
-
-    // Check that the number of arguments matches the definition
-    if (valueOrDef.args.length !== expr.args.length) {
+        const valueOrDef = ctx.context.get((expr.func.ref as AbstractDefinition).name) as number | Definition;
+        if (!isDefinition(valueOrDef)) {
+            return valueOrDef;
+        }
+        if (valueOrDef.args.length !== expr.args.length) {
         throw new Error(
             `Function definition and its call have different number of arguments: ${valueOrDef.name}`
         );
+        }
+
+        // Create a local context for function execution
+        const localContext = new Map<string, number | Definition>(ctx.context);
+        
+        // Bind each argument (params are strings)
+        for (let i = 0; i < valueOrDef.args.length; i++) {
+            localContext.set(valueOrDef.args[i].name, evalExpression(expr.args[i], ctx));
+        }
+
+        // Evaluate the function body in the local context
+        return evalExpression(valueOrDef.expr, {module: ctx.module, context: localContext, result: ctx.result});
     }
-
-    // Create a local context for function execution
-    const localContext = new Map<string, number | Definition>(ctx.context);
-
-    // Bind each argument (params are strings)
-    for (let i = 0; i < valueOrDef.args.length; i++) {
-        localContext.set(valueOrDef.args[i], evalExpression(expr.args[i], ctx));
-    }
-
-    // Evaluate the function body in the local context
-    return evalExpression(valueOrDef.expr, { module: ctx.module, context: localContext, result: ctx.result });
-}
     throw new Error('Impossible type of Expression.');
 }
