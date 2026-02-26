@@ -3,7 +3,7 @@
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
-import type { Definition, Evaluation, Expression, Model, Statement } from './generated/ast.js';
+import type { AbstractDefinition,Definition, Evaluation, Expression, Model, Statement } from './generated/ast.js';
 import { isBinaryExpression, isDefinition, isEvaluation, isFunctionCall, isNumberLiteral } from './generated/ast.js';
 import { applyOp } from './arithmetics-util.js';
 
@@ -65,7 +65,7 @@ export function evalExpression(expr: Expression, ctx?: InterpreterContext): numb
         return +expr.value;
     }
     if (isFunctionCall(expr)) {
-    const valueOrDef = ctx.context.get((expr.func.ref as Definition).name) as number | Definition;
+    const valueOrDef = ctx.context.get((expr.func.ref as AbstractDefinition).name) as number | Definition;
     if (!isDefinition(valueOrDef)) {
         return valueOrDef as number;
     }
@@ -82,7 +82,7 @@ export function evalExpression(expr: Expression, ctx?: InterpreterContext): numb
 
     // Bind each argument (params are strings)
     for (let i = 0; i < valueOrDef.args.length; i++) {
-        localContext.set(valueOrDef.args[i], evalExpression(expr.args[i], ctx));
+        localContext.set(valueOrDef.args[i].name, evalExpression(expr.args[i], ctx));
     }
 
     // Evaluate the function body in the local context

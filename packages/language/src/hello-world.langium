@@ -16,7 +16,7 @@ Statement:
     Definition | Evaluation;
 Definition:
     'def' name=ID 
-    '(' args+=DeclaredParameter (',' args+=DeclaredParameter)* ')'?
+    ('(' args+=DeclaredParameter (',' args+=DeclaredParameter)* ')')?
     ':' expr=Expression ';';
 
 DeclaredParameter: name=ID;
@@ -40,4 +40,3 @@ PrimaryExpression infers Expression:
     {infer FunctionCall} func=[AbstractDefinition] ('(' args+=Expression (',' args+=Expression)* ')')?;
 
 //goal 2+2
-
