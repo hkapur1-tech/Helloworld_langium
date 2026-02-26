@@ -3,11 +3,7 @@
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
-<<<<<<< HEAD
 import type { AbstractDefinition,Definition, Evaluation, Expression, Model, Statement } from './generated/ast.js';
-=======
-import type { AbstractDefinition, Definition, Evaluation, Expression, Model, Statement } from './generated/ast.js';
->>>>>>> 6950fb285a52117341e05fbea120d256fdc997d9
 import { isBinaryExpression, isDefinition, isEvaluation, isFunctionCall, isNumberLiteral } from './generated/ast.js';
 import { applyOp } from './arithmetics-util.js';
 
@@ -69,7 +65,6 @@ export function evalExpression(expr: Expression, ctx?: InterpreterContext): numb
         return +expr.value;
     }
     if (isFunctionCall(expr)) {
-<<<<<<< HEAD
     const valueOrDef = ctx.context.get((expr.func.ref as AbstractDefinition).name) as number | Definition;
     if (!isDefinition(valueOrDef)) {
         return valueOrDef as number;
@@ -77,30 +72,10 @@ export function evalExpression(expr: Expression, ctx?: InterpreterContext): numb
 
     // Check that the number of arguments matches the definition
     if (valueOrDef.args.length !== expr.args.length) {
-=======
-        const valueOrDef = ctx.context.get((expr.func.ref as AbstractDefinition).name) as number | Definition;
-        if (!isDefinition(valueOrDef)) {
-            return valueOrDef;
-        }
-        if (valueOrDef.args.length !== expr.args.length) {
->>>>>>> 6950fb285a52117341e05fbea120d256fdc997d9
         throw new Error(
             `Function definition and its call have different number of arguments: ${valueOrDef.name}`
         );
-        }
-
-        // Create a local context for function execution
-        const localContext = new Map<string, number | Definition>(ctx.context);
-        
-        // Bind each argument (params are strings)
-        for (let i = 0; i < valueOrDef.args.length; i++) {
-            localContext.set(valueOrDef.args[i].name, evalExpression(expr.args[i], ctx));
-        }
-
-        // Evaluate the function body in the local context
-        return evalExpression(valueOrDef.expr, {module: ctx.module, context: localContext, result: ctx.result});
     }
-<<<<<<< HEAD
 
     // Create a local context for function execution
     const localContext = new Map<string, number | Definition>(ctx.context);
@@ -113,7 +88,5 @@ export function evalExpression(expr: Expression, ctx?: InterpreterContext): numb
     // Evaluate the function body in the local context
     return evalExpression(valueOrDef.expr, { module: ctx.module, context: localContext, result: ctx.result });
 }
-=======
->>>>>>> 6950fb285a52117341e05fbea120d256fdc997d9
     throw new Error('Impossible type of Expression.');
 }
