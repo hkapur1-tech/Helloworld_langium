@@ -1,42 +1,30 @@
-grammar HelloWorld
+grammar HelloWorld 
+hidden terminal WS: /\s+/; 
+terminal ID: /[_a-zA-Z][\w]*/; 
+terminal NUMBER returns number: /[0-9]+(\.[0-9]*)?/; 
 
-hidden terminal WS: /\s+/;
-terminal ID: /[_a-zA-Z][\w]*/;
-terminal NUMBER returns number: /[0-9]+(\.[0-9]*)?/;
+entry Model: (persons+=Person | greetings+=Greeting | statement+=Statement)*; 
 
-entry Model: (persons+=Person | greetings+=Greeting | statement+=Statement)*;
-
-Person:
-    'person' name=ID;
-
-Greeting:
+Person: 
+    'person' name=ID; 
+Greeting: 
     'Hello' person=[Person] '!';
-
-Statement:
+ Statement: 
     Definition | Evaluation;
-Definition:
+ Definition: 
     'def' name=ID 
-    ('(' args+=DeclaredParameter (',' args+=DeclaredParameter)* ')')?
-    ':' expr=Expression ';';
-
-DeclaredParameter: name=ID;
-type AbstractDefinition = Definition | DeclaredParameter ;
-
-Evaluation:
-    expression=Expression ';';
-
+    ('(' args+=DeclaredParameter (',' args+=DeclaredParameter)* ')')? ':' expr=Expression ';';
+ DeclaredParameter: name=ID; 
+type AbstractDefinition = Definition | DeclaredParameter ; 
+Evaluation: 
+    expression=Expression ';'; 
 Expression:
-    BinaryExpression;
+     IfExpression|BinaryExpression; 
 
-infix BinaryExpression on PrimaryExpression:
-    '%'
-    > '^'
-    > '*' | '/'
-    > '+' | '-';
+IfExpression:
+    'if' condition=BinaryExpression 'then' thenBranch=BinaryExpression 'else' elseBranch=Expression;
 
-PrimaryExpression infers Expression:
-    '(' Expression ')' |
-    {infer NumberLiteral} value=NUMBER |
-    {infer FunctionCall} func=[AbstractDefinition] ('(' args+=Expression (',' args+=Expression)* ')')?;
-
-//goal 2+2
+infix BinaryExpression on PrimaryExpression: 
+        '%' > '^' > '*' | '/' > '+' | '-' > '>' | '<' | '>=' | '<=';
+ PrimaryExpression infers Expression: '(' Expression ')' | 
+{infer NumberLiteral} value=NUMBER | {infer FunctionCall} func=[AbstractDefinition] ('(' args+=Expression (',' args+=Expression)* ')')?;

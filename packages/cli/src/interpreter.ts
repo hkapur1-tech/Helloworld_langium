@@ -1,26 +1,89 @@
 /******************************************************************************
- * Copyright 2021 TypeFox GmbH
- * This program and the accompanying materials are made available under the
- * terms of the MIT License, which is available in the project root.
+ * Star-style Interpreter for HelloWorld language
  ******************************************************************************/
 
-import { Model } from '../../language/src/generated/ast.js';
+import type {
+    Model,
+    Expression,
+    BinaryExpression,
+} from '../../language/src/generated/ast.js';
+
+export function evaluateModel(model: Model): number[] {
+    const results: number[] = [];
+
+    for (const stmt of model.statement) {
+        if (stmt.$type === 'Evaluation') {
+            const value = evalExpression(stmt.expression);
+            results.push(value);
+        }
+        // Definitions are ignored for now (same as Star examples)
+    }
+
+    return results;
+}
+
+function evalExpression(expr: Expression): number {
+    switch (expr.$type) {
+
+        case 'NumberLiteral':
+            return expr.value;
+
+        case 'BinaryExpression':
+            return evalBinary(expr);
+
+        case 'IfExpression': {
+            const cond = evalExpression(expr.condition);
+        if (Boolean(cond)) {
+            return evalExpression(expr.thenBranch);
+    }   else {
+          return evalExpression(expr.elseBranch);
+    }
+}
+
+        case 'FunctionCall':
+            throw new Error('Function calls are not supported yet');
+
+        default:
+            // Exhaustiveness check
+            const _exhaustive: never = expr;
+            return _exhaustive;
+    }
+}
+
+/**
+ * Binary expression evaluation
+ */
+function evalBinary(expr: BinaryExpression): number {
+    const left = evalExpression(expr.left);
+    const right = evalExpression(expr.right);
+
+    switch (expr.operator) {
+        case '+': return left + right;
+        case '-': return left - right;
+        case '*': return left * right;
+        case '/': return left / right;
+        case '%': return left % right;
+        case '^': return Math.pow(left, right);
+        case '>':  return left > right ? 1 : 0;
+        case '<':  return left < right ? 1 : 0;
+        case '>=': return left >= right ? 1 : 0;
+        case '<=': return left <= right ? 1 : 0;
+        default:
+            throw new Error(`Unknown operator: ${expr.operator}`);
+    }
+}
+
 import { NodeFileSystem } from 'langium/node';
-import { createHelloWorldServices} from 'hello-world-language';
+import { createHelloWorldServices } from 'hello-world-language';
 import { extractDocument } from './util.js';
-import chalk from 'chalk';
-import { interpretEvaluations } from 'hello-world-language';
 
 export const evalAction = async (fileName: string): Promise<void> => {
     const services = createHelloWorldServices(NodeFileSystem).HelloWorld;
-       const document = await extractDocument(fileName, services);
-    // console.log(JSON.stringify(document.parseResult.value, null, 2));
+    const document = await extractDocument(fileName, services);
     const model = document.parseResult.value as Model;
-    for (const [evaluation, value] of interpretEvaluations(model)) {
-        const cstNode = evaluation.expression.$cstNode;
-        if (cstNode) {
-            const line = cstNode.range.start.line + 1;
-            console.log(`line ${line}:`, chalk.green(cstNode.text), '===>', value);
-        }
+
+    const results = evaluateModel(model);
+    for (const result of results) {
+        console.log(result);
     }
 };
