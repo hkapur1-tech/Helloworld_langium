@@ -7,19 +7,25 @@
 import type { ResolvedReference } from 'langium';
 import { isDefinition, type BinaryExpression, type Definition, type FunctionCall } from './generated/ast.js';
 
-export function applyOp(op: BinaryExpression['operator']): (x: number, y: number) => number {
+export type Value = number | boolean
+
+export function applyOp(op: BinaryExpression['operator']): (x: Value, y: Value) => Value {
     switch (op) {
-        case '+': return (x, y) => x + y;
-        case '-': return (x, y) => x - y;
-        case '*': return (x, y) => x * y;
-        case '^': return (x, y) => Math.pow(x, y);
-        case '%': return (x, y) => x % y;
+        case '+': return (x, y) => ensureNumber(x, 'left') + ensureNumber(y, 'right');
+        case '-': return (x, y) =>ensureNumber(x, 'left') - ensureNumber(y, 'right');
+        case '*': return (x, y) => ensureNumber(x, 'left') * ensureNumber(y, 'right');
+        case '^': return (x, y) => Math.pow(ensureNumber(x, 'left'), ensureNumber(y, 'right'));
+        case '%': return (x, y) => ensureNumber(x, 'left') % ensureNumber(y, 'right');
         case '/': return (x, y) => {
             if (y === 0) {
                 throw new Error('Division by zero');
             }
-            return x / y;
+            return ensureNumber(x, 'left') / ensureNumber(y, 'right');
         };
+        case '<': return (x, y) => ensureNumber(x, 'left') < ensureNumber(y, 'right');
+        case '>': return (x, y) => ensureNumber(x, 'left') > ensureNumber(y, 'right');
+        case '<=' : return (x, y) => ensureNumber(x, 'left') <= ensureNumber(y, 'right');
+        case '>=': return (x, y) => ensureNumber(x, 'left') >= ensureNumber(y, 'right');
         default: throw new Error('Unknown operator: ' + op);
     }
 }
@@ -30,5 +36,12 @@ export type ResolvedFunctionCall = FunctionCall & {
 
 export function isResolvedFunctionCall(functionCall: FunctionCall): functionCall is ResolvedFunctionCall {
     return isDefinition(functionCall.func.ref);
+}
+
+function ensureNumber(value: Value, label: string): number {
+    if (typeof value !== 'number') {
+        throw new Error(`Expected ${label} to be a number, got ${typeof value}.`);
+    }
+    return value;
 }
 

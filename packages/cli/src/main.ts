@@ -10,6 +10,9 @@ import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { evalAction } from './interpreter.js';
+
+import { interpretEvaluations } from 'hello-world-language';
+
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 const packagePath = path.resolve(__dirname, '..', 'package.json');
@@ -20,6 +23,15 @@ export const generateAction = async (fileName: string, opts: GenerateOptions): P
     const model = await extractAstNode<Model>(fileName, services);
     const generatedFilePath = generateJavaScript(model, fileName, opts.destination);
     console.log(chalk.green(`JavaScript code generated successfully: ${generatedFilePath}`));
+}
+
+export const interpreterAction=async(fileName:string): Promise<void> => {
+    const services= createHelloWorldServices(NodeFileSystem).HelloWorld;
+    const model = await extractAstNode<Model>(fileName, services);
+    const results= interpretEvaluations(model);
+    for(const result of results){
+        console.log(result[1]);
+    }
 }
 
 export type GenerateOptions = {
@@ -42,8 +54,15 @@ export default function(): void {
     program
         .command('eval')
         .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+        .option('-pp' ,'Print with chalk')
         .description('evaluates the statements/expression in the file')
         .action(evalAction)
+
+    program
+        .command('interpret')
+        .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+        .description('evaluates the statements/expression in the file')
+        .action(interpreterAction)
 
     program.parse(process.argv);
 }
